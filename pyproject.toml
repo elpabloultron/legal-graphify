@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "legal-graphify"
+version = "0.1.0"
+description = "Knowledge Graph & Multi-hop Relational Reasoning Framework for Civil Law Systems (85%-95% LLM Token Savings)"
+readme = "README.md"
+authors = [
+    { name = "Pablo Benavides Jorquera", email = "pablobenavidesjorquera@gmail.com" }
+]
+license = { text = "MIT" }
+keywords = ["legal-tech", "knowledge-graph", "graphify", "llm", "civil-law", "networkx", "mcp", "token-compression"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+requires-python = ">=3.10"
+dependencies = [
+    "networkx>=3.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+]
+mcp = [
+    "fastmcp>=0.1.0",
+]
+
+[project.scripts]
+legal-graphify = "legal_graphify.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["legal_graphify*"]
+
+[tool.setuptools.package-data]
+"*" = ["data/*.json"]
