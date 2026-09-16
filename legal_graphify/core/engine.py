@@ -5,7 +5,12 @@ from typing import Dict, Any, Optional, List, Set
 from pathlib import Path
 import networkx as nx
 
-from legal_graphify.extractors.doctrine import normalize_str, sanitize_id, extract_doctrine_directory
+from legal_graphify.extractors.doctrine import (
+    normalize_str,
+    sanitize_id,
+    extract_doctrine_directory,
+    parse_doctrine_markdown,
+)
 from legal_graphify.core.centrality import compute_pagerank, detect_communities, extract_god_nodes
 from legal_graphify.core.reasoning import find_shortest_paths, compute_blast_radius, explain_node_360
 from legal_graphify.visualizer.mermaid import generate_mermaid
@@ -79,6 +84,43 @@ class LegalGraphEngine:
         with open(target, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
         return target
+
+    def ingest_markdown_content(
+        self,
+        markdown_text: str,
+        auto_save: bool = False,
+        target_json_path: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Asimila incrementalmente un texto en Markdown Canónico dentro del Knowledge Graph.
+        Agrega nodos, aristas y recalcula los índices de búsqueda.
+        Si auto_save=True, guarda el grafo enriquecido en disco.
+        """
+        initial_nodes = self.graph.number_of_nodes()
+        initial_edges = self.graph.number_of_edges()
+
+        updated_graph, added_institutions = parse_doctrine_markdown(markdown_text, graph=self.graph)
+        self.graph = updated_graph
+        self._rebuild_indices()
+        self.is_built = True
+
+        nodes_added = self.graph.number_of_nodes() - initial_nodes
+        edges_added = self.graph.number_of_edges() - initial_edges
+
+        saved_to = None
+        if auto_save:
+            saved_to = self.save_graph_json(target_json_path)
+
+        return {
+            "success": True,
+            "institutions_added": len(added_institutions),
+            "institutions": added_institutions,
+            "nodes_added": nodes_added,
+            "edges_added": edges_added,
+            "total_nodes": self.graph.number_of_nodes(),
+            "total_edges": self.graph.number_of_edges(),
+            "saved_to": saved_to,
+        }
 
     def _rebuild_indices(self) -> None:
         """Refreshes lookup indices for fast search."""

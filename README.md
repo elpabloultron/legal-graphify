@@ -79,6 +79,12 @@ $ legal-graphify god-nodes --top 5
 ### 5. Instant Visual Diagrams (`legal-graphify mermaid`)
 Generates styled Mermaid diagrams directly in your terminal for Markdown rendering.
 
+### 6. Autonomous Doc2Markdown & Graph Ingestion (`legal-graphify ingest`)
+Transforms messy legal texts or documents (`.pdf`, `.docx`, `.txt`, `.md`) into canonical, token-optimized Markdown according to RAE/ASALE standards, Chilean statutory citation formats (`[BCN - Código Civil, Art. 1437]`, `[CS - Rol N° 1234-2023]`), and incrementally assimilates newly discovered institutions into the knowledge graph:
+```bash
+$ legal-graphify ingest "tratado_imprevision.pdf" --output "doctrina/civil/imprevision.md" --update-graph
+```
+
 ---
 
 ## 📦 Installation
@@ -116,13 +122,14 @@ LegalGraphify provides a native MCP server for integration with **Claude Desktop
 - `explain_legal_entity(query)`: $360^\circ$ breakdown (statutes, case law, actions).
 - `analyze_statutory_impact(statute_or_concept)`: Legislative/case-law blast radius.
 - `get_god_nodes(top_n)`: PageRank structural pillars.
+- `ingest_document_to_markdown(source_text_or_path, output_path, update_graph)`: Ingests raw text or documents, normalizes to canonical RAE/Chilean legal Markdown, and incrementally assimilates nodes and relations into the active knowledge graph.
 
 ---
 
 ## 💻 Python API Usage
 
 ```python
-from legal_graphify import LegalGraphEngine
+from legal_graphify import LegalGraphEngine, Doc2MarkdownAgent
 
 # Initialize engine (loads bundled seed knowledge graph)
 engine = LegalGraphEngine()
@@ -139,6 +146,17 @@ print(path_result["paths"][0]["trace"])
 # 3. Analyze blast radius
 impact = engine.affected("Art. 2515 CC")
 print(f"Risk level: {impact['severity']}")
+
+# 4. Autonomous document ingestion & graph assimilation
+agent = Doc2MarkdownAgent(engine=engine)
+result = agent.run(
+    source="tratado_imprevision.pdf",
+    output_path="doctrina/imprevision.md",
+    update_graph=True,
+    default_author="Jorge López Santa María",
+    default_area="Derecho Civil Patrimonial"
+)
+print(f"Ingested {result['institutions_count']} institutions, new nodes: {result['assimilation']['nodes_added']}")
 ```
 
 ---

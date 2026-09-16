@@ -46,6 +46,34 @@ def create_mcp_app():
         """Identify foundational legal pillars and statutes using PageRank centrality."""
         return engine.god_nodes(top_n=top_n)
 
+    @mcp.tool()
+    def ingest_document_to_markdown(
+        source: str,
+        output_path: Optional[str] = None,
+        author: Optional[str] = None,
+        area: Optional[str] = None,
+        work: Optional[str] = None,
+        subject: Optional[str] = None,
+        update_graph: bool = False,
+    ) -> Dict[str, Any]:
+        """
+        Ingest unstructured legal document (.txt, .md, .docx, .pdf) or raw text,
+        convert to canonical token-optimized Markdown adhering strictly to RAE/ASALE rules,
+        and optionally assimilate incremental nodes/edges into LegalGraphify.
+        """
+        from legal_graphify.agents.doc2md_agent import Doc2MarkdownAgent
+        agent = Doc2MarkdownAgent(engine=engine)
+        return agent.run(
+            source=source,
+            output_path=output_path,
+            author=author,
+            area=area,
+            work=work,
+            subject=subject,
+            update_graph=update_graph,
+            save_graph=update_graph,
+        )
+
     return mcp
 
 

@@ -42,6 +42,17 @@ def main():
     # stats
     subparsers.add_parser("stats", help="Show global graph topology metrics")
 
+    # ingest
+    p_ingest = subparsers.add_parser("ingest", help="Ingest raw text/doc, convert to canonical Markdown and update graph")
+    p_ingest.add_argument("source", type=str, help="Path to document (.txt, .md, .docx, .pdf) or raw text string")
+    p_ingest.add_argument("--output", "-o", type=str, default=None, help="Output .md file path (default: print to stdout)")
+    p_ingest.add_argument("--author", "-a", type=str, default=None, help="Legal treatise author or scholar")
+    p_ingest.add_argument("--area", type=str, default=None, help="Legal field (e.g. Derecho Civil, Laboral)")
+    p_ingest.add_argument("--work", "-w", type=str, default=None, help="Book title or treatise name")
+    p_ingest.add_argument("--subject", "-s", type=str, default=None, help="Dogmatic subject or topic")
+    p_ingest.add_argument("--update-graph", "-u", action="store_true", help="Incrementally assimilate new nodes/edges into the Knowledge Graph")
+    p_ingest.add_argument("--no-save", action="store_true", help="Do not persist updated graph to disk when using --update-graph")
+
     # serve
     subparsers.add_parser("serve", help="Run standalone Model Context Protocol (MCP) server")
 
@@ -58,6 +69,45 @@ def main():
         print(f"📊 LegalGraphify Topology Metrics:")
         print(f"  • Total Nodes: {g.number_of_nodes()}")
         print(f"  • Total Edges: {g.number_of_edges()}")
+        return
+
+    if args.subcommand == "ingest":
+        from legal_graphify.agents.doc2md_agent import Doc2MarkdownAgent
+        agent = Doc2MarkdownAgent(engine=engine)
+        res = agent.run(
+            source=args.source,
+            output_path=args.output,
+            author=args.author,
+            area=args.area,
+            work=args.work,
+            subject=args.subject,
+            update_graph=args.update_graph,
+            save_graph=not args.no_save,
+        )
+        if not res.get("success"):
+            print(f"❌ Error: {res.get('error')}", file=sys.stderr)
+            sys.exit(1)
+
+        print("\n📄 CANONICAL MARKDOWN (Token-Optimized):")
+        print("═" * 60)
+        if args.output:
+            print(f"✅ Archivo guardado exitosamente en: {res['output_file']}")
+            print(f"📊 Métricas: {res['raw_characters']} caracteres crudos ➔ {res['canonical_characters']} caracteres canónicos")
+        else:
+            print(res["canonical_markdown"])
+            print("═" * 60)
+            print(f"📊 Métricas: {res['raw_characters']} caracteres crudos ➔ {res['canonical_characters']} caracteres canónicos")
+
+        if args.update_graph and res.get("graph_stats"):
+            gs = res["graph_stats"]
+            print("\n🧠 ASIMILACIÓN EN KNOWLEDGE GRAPH:")
+            print("═" * 60)
+            print(f"  • Instituciones agregadas: {gs['institutions_added']}")
+            print(f"  • Nuevos nodos:            +{gs['nodes_added']} (Total: {gs['total_nodes']})")
+            print(f"  • Nuevas aristas:          +{gs['edges_added']} (Total: {gs['total_edges']})")
+            if gs.get("saved_to"):
+                print(f"  • Grafo persistido en:     {gs['saved_to']}")
+            print("═" * 60)
         return
 
     if args.subcommand == "query":
