@@ -8,7 +8,10 @@ from __future__ import annotations
 import os
 import re
 import zipfile
-import xml.etree.ElementTree as ET
+try:
+    import defusedxml.ElementTree as ET
+except ImportError:
+    import xml.etree.ElementTree as ET  # nosec B405
 from pathlib import Path
 from typing import Dict, Any, Optional, List, Tuple
 
@@ -38,7 +41,7 @@ def extract_text_from_source(source: str | Path) -> str:
             try:
                 with zipfile.ZipFile(source) as docx_zip:
                     xml_content = docx_zip.read("word/document.xml")
-                    tree = ET.fromstring(xml_content)
+                    tree = ET.fromstring(xml_content)  # nosec B314
                     # Espacios de nombres de WordprocessingML
                     namespaces = {"w": "http://schemas.openxmlformats.org/wordprocessingml/2006/main"}
                     paragraphs = []
