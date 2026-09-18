@@ -16,6 +16,11 @@ from pathlib import Path
 from typing import Dict, Any, Optional, List, Tuple
 
 
+# Extensiones que identifican un documento en disco. Si una fuente termina en
+# alguna de ellas, se espera un archivo real: nunca texto en bruto.
+DOCUMENT_EXTENSIONS = {".txt", ".md", ".docx", ".pdf"}
+
+
 def extract_text_from_source(source: str | Path) -> str:
     """
     Extrae texto crudo a partir de una ruta de archivo (PDF, DOCX, TXT, MD) o devuelve el texto directamente.
@@ -80,6 +85,16 @@ def extract_text_from_source(source: str | Path) -> str:
                     return f.read()
 
     # Si no es un archivo existente, se asume que es el contenido de texto en sí
+    # — salvo que la cadena tenga forma de ruta a un documento: en ese caso es un
+    # error de tipeo del usuario, no doctrina, e ingerir el nombre del archivo
+    # producía un "éxito" silencioso con cero instituciones.
+    extension = os.path.splitext(source)[1].lower()
+    if extension in DOCUMENT_EXTENSIONS:
+        raise FileNotFoundError(
+            f"El archivo '{source}' no existe. Si querías pasar el texto directamente, "
+            f"elimina la extensión '{extension}' del argumento."
+        )
+
     return str(source)
 
 

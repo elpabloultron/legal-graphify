@@ -25,6 +25,7 @@ class LegalGraphEngine:
     def __init__(self, graph_path: Optional[str] = None):
         self.graph = nx.DiGraph()
         self.instituciones_index: Dict[str, str] = {}
+        self.obras_index: Dict[str, str] = {}
         self.normas_index: Dict[str, str] = {}
         self.is_built = False
         self.graph_path = graph_path or DEFAULT_SEED_PATH
@@ -33,39 +34,63 @@ class LegalGraphEngine:
             self.load_graph_json(self.graph_path)
 
     def load_graph_json(self, filepath: str) -> bool:
-        """Loads serialized graph from Node-Link JSON."""
+        """Loads serialized graph from Node-Link JSON.
+
+        Returns ``False`` only when *filepath* does not exist or serializes an
+        intentionally empty graph. A file that exists but cannot be read or is
+        not a node-link graph raises ``ValueError``: silently returning an empty
+        engine used to turn every downstream query into a misleading
+        "node not found" while hiding the real problem.
+        """
         if not os.path.exists(filepath):
             return False
+
         try:
             with open(filepath, "r", encoding="utf-8") as f:
                 data = json.load(f)
+        except (json.JSONDecodeError, UnicodeDecodeError, OSError) as exc:
+            raise ValueError(
+                f"Graph file '{filepath}' exists but could not be parsed: {exc}"
+            ) from exc
 
-            if "edges" in data and "links" not in data:
-                data["links"] = data["edges"]
-            elif "links" in data and "edges" not in data:
-                data["edges"] = data["links"]
+        if not isinstance(data, dict):
+            raise ValueError(
+                f"Graph file '{filepath}' must contain a node-link JSON object, "
+                f"got {type(data).__name__}."
+            )
 
-            loaded = None
-            for edges_key in [None, "edges", "links"]:
-                try:
-                    kwargs = {"directed": True}
-                    if edges_key:
-                        kwargs["edges"] = edges_key
-                    g = nx.node_link_graph(data, **kwargs)
-                    if g.number_of_nodes() > 0:
-                        loaded = g
-                        break
-                except Exception:
-                    continue
+        if "edges" in data and "links" not in data:
+            data["links"] = data["edges"]
+        elif "links" in data and "edges" not in data:
+            data["edges"] = data["links"]
 
-            if loaded is not None:
-                self.graph = loaded
-                self._rebuild_indices()
-                self.is_built = True
-                return True
-        except Exception:
-            pass
-        return False
+        loaded = None
+        last_error: Optional[Exception] = None
+        # `edges` is always passed explicitly: the historical default ("links")
+        # changed to "edges" in NetworkX 3.6, so relying on it is ambiguous.
+        for edges_key in ["links", "edges"]:
+            try:
+                g = nx.node_link_graph(data, directed=True, edges=edges_key)
+            except Exception as exc:  # noqa: BLE001 - only this key failed, try the next
+                last_error = exc
+                continue
+            if g.number_of_nodes() > 0:
+                loaded = g
+                break
+
+        if loaded is None:
+            if not ("nodes" in data and ("links" in data or "edges" in data)):
+                raise ValueError(
+                    f"Graph file '{filepath}' is not a valid node-link graph: it has no "
+                    f"'nodes' plus 'links'/'edges' keys (last error: {last_error})."
+                )
+            # Valid node-link document that simply contains zero nodes.
+            return False
+
+        self.graph = loaded
+        self._rebuild_indices()
+        self.is_built = True
+        return True
 
     def save_graph_json(self, filepath: Optional[str] = None) -> str:
         """Persists graph to Node-Link JSON format."""
@@ -125,7 +150,7 @@ class LegalGraphEngine:
     def _rebuild_indices(self) -> None:
         """Refreshes lookup indices for fast search."""
         self.instituciones_index.clear()
-        self.obras_index = {}
+        self.obras_index.clear()
         self.normas_index.clear()
         for nid, d in self.graph.nodes(data=True):
             lbl = normalize_str(d.get("label", ""))

@@ -42,8 +42,18 @@ class Doc2MarkdownAgent:
         """
         source_desc = str(source) if isinstance(source, (str, Path)) and os.path.exists(str(source)) else "Texto directo"
 
-        # 1. Extracción de texto crudo
-        raw_text = extract_text_from_source(source)
+        # 1. Extracción de texto crudo (los fallos de lectura/extensión se
+        #    devuelven como resultado fallido para que CLI y MCP muestren un
+        #    error legible en vez de una traza de excepción).
+        try:
+            raw_text = extract_text_from_source(source)
+        except (FileNotFoundError, RuntimeError, ValueError) as exc:
+            return {
+                "success": False,
+                "error": str(exc),
+                "source": source_desc,
+            }
+
         if not raw_text or len(raw_text.strip()) < 10:
             return {
                 "success": False,

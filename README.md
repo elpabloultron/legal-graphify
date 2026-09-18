@@ -82,8 +82,12 @@ Generates styled Mermaid diagrams directly in your terminal for Markdown renderi
 ### 6. Autonomous Doc2Markdown & Graph Ingestion (`legal-graphify ingest`)
 Transforms messy legal texts or documents (`.pdf`, `.docx`, `.txt`, `.md`) into canonical, token-optimized Markdown according to RAE/ASALE standards, Chilean statutory citation formats (`[BCN - Código Civil, Art. 1437]`, `[CS - Rol N° 1234-2023]`), and incrementally assimilates newly discovered institutions into the knowledge graph:
 ```bash
-$ legal-graphify ingest "tratado_imprevision.pdf" --output "doctrina/civil/imprevision.md" --update-graph
+$ legal-graphify ingest "doctrina_raw/tratado_imprevision.pdf" --output "doctrina/civil/imprevision.md" --update-graph
 ```
+
+> `ingest` acepta una ruta a un documento existente (`.pdf`, `.docx`, `.txt`, `.md`) o el texto en bruto.
+> Una ruta que termina en una de esas extensiones pero no existe es un error explícito (exit code 1),
+> no un "éxito" con cero instituciones.
 
 ---
 
@@ -150,13 +154,19 @@ print(f"Risk level: {impact['severity']}")
 # 4. Autonomous document ingestion & graph assimilation
 agent = Doc2MarkdownAgent(engine=engine)
 result = agent.run(
-    source="tratado_imprevision.pdf",
+    source="doctrina_raw/imprevision.pdf",   # ruta a un archivo existente, o el texto en bruto
     output_path="doctrina/imprevision.md",
+    author="Jorge López Santa María",
+    area="Derecho Civil Patrimonial",
+    work="Los Contratos: Parte General",
     update_graph=True,
-    default_author="Jorge López Santa María",
-    default_area="Derecho Civil Patrimonial"
 )
-print(f"Ingested {result['institutions_count']} institutions, new nodes: {result['assimilation']['nodes_added']}")
+if result["success"]:
+    stats = result["graph_stats"] or {}
+    print(f"Ingested {stats.get('institutions_added', 0)} institutions, "
+          f"new nodes: {stats.get('nodes_added', 0)}")
+else:
+    print(f"Ingest failed: {result['error']}")
 ```
 
 ---
