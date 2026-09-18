@@ -1,8 +1,30 @@
 <p align="center">
   <h1 align="center">⚖️ LegalGraphify</h1>
   <p align="center"><strong>Knowledge Graph & Multi-hop Relational Reasoning Framework for Civil Law Systems</strong></p>
-  <p align="center"><em>85%–95% LLM Prompt Token Savings via Canonical Ontological Sub-graphs</em></p>
+  <p align="center"><em>Conocimiento canónico del derecho civil chileno como grafo, para consultar en vez de leer</em></p>
 </p>
+
+> ### ⛔ Repositorio archivado (18-sep-2026) — usar [`open-legal-chile`](https://github.com/elpabloultron/open-legal-chile)
+>
+> Este paquete fue un intento de separar el motor del grafo jurídico en módulos. Se archiva
+> porque, auditado contra el motor que sí está en producción, **no podía reconstruir el grafo**:
+> generaba **947 nodos / 1.215 aristas** contra los **967 / 1.366** de `open-legal-chile`, sin las
+> 13 vías procesales ni los atributos de tipo (`file_type`, `source_file`, `norm_label`). Sus
+> pruebas pasaban porque cargaban el `legal_knowledge_graph.json` **del otro repositorio**: su
+> archivo de datos era un artefacto del motor de `open-legal-chile`, no un producto suyo.
+>
+> **Lo único que valía se rescató a `open-legal-chile`**, y arreglado: el patrón de artículos que
+> venía aquí no sobrevivía a una coma (su grupo intermedio excluía la puntuación), así que sobre un
+> código real encontraba casi ningún artículo. Vive allá como `extract_articulos_de_codigo()` e
+> `ingerir_codigo_bcn()` en `legal_graphify.py`.
+>
+> Y la cifra que encabezaba este README —«85%–95% de ahorro de tokens»— era falsa: se medía contra
+> un denominador inflado por un piso de 1.200 tokens aplicado al tamaño de cada obra. La medición
+> real, sobre las 105 instituciones del grafo, va de **30,4% a 90,5%, con mediana 74,1%**.
+>
+> Se conserva por su historia y porque nunca se publicó en PyPI: archivarlo no deja ningún paquete
+> huérfano. Si quieres la estructura modular, se rehace *dentro* de `open-legal-chile` conservando
+> su API en español — al revés costaba 16-20 h y rompía el contrato que consume el harness legal.
 
 <p align="center">
   <a href="https://github.com/elpabloultron/legal-graphify/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License"></a>
